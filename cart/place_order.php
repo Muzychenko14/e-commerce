@@ -69,48 +69,53 @@ if (empty($cart_items)) {
     die("Your cart is empty.");
 }
 
-
-
-$order_ids = [];
-
+$total_price = 0;
 foreach ($cart_items as $product_id => $item) {
-    $quantity = (int)($item['quantity'] ?? 1);
-    $product_id = (int)$product_id;
-
-    // Проверка существования товара
     $check = $conn->prepare("SELECT price FROM products WHERE id = ?");
     $check->bind_param("i", $product_id);
     $check->execute();
     $result = $check->get_result();
-    
-    if ($result->num_rows === 0) {
-        $check->close();
-        continue;
-    }
+    if ($result->num_rows === 0) continue;
 
     $product_data = $result->fetch_assoc();
     $price = (float)$product_data['price'];
     $check->close();
 
-    $total_price = $price * $quantity;
+    $total_price += $price * (int)$item['quantity'];
+}
+$stmt = $conn->prepare("INSERT INTO orders (user_id, address_id, total_price, created_at) VALUES (?, ?, ?, NOW())");
+$stmt->bind_param("iid", $user_id, $address_id, $total_price);
+$stmt->execute();
+$order_id = $stmt->insert_id;
+$stmt->close();
 
-    // Вставка заказа с total_price
-    $stmt = $conn->prepare("INSERT INTO orders (user_id, product_id, quantity, address_id, total_price, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
-    $stmt->bind_param("iiiid", $user_id, $product_id, $quantity, $address_id, $total_price);
+foreach ($cart_items as $product_id => $item) {
+    $quantity = (int)$item['quantity'];
+
+    $check = $conn->prepare("SELECT price FROM products WHERE id = ?");
+    $check->bind_param("i", $product_id);
+    $check->execute();
+    $result = $check->get_result();
+    if ($result->num_rows === 0) continue;
+
+    $product_data = $result->fetch_assoc();
+    $price = (float)$product_data['price'];
+    $check->close();
+
+    $stmt = $conn->prepare("INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("iiid", $order_id, $product_id, $quantity, $price);
     $stmt->execute();
-    $order_id = $stmt->insert_id;
-    $order_ids[] = $order_id;
     $stmt->close();
 }
 
-
-
-foreach ($order_ids as $order_id) {
-    $stmt = $conn->prepare("INSERT INTO payments (order_id, payment_method, payment_status, created_at) VALUES (?, ?, 'pending', NOW())");
-    $stmt->bind_param("is", $order_id, $payment_method);
-    $stmt->execute();
-    $stmt->close();
+if (empty($payment_method)) {
+    die("payment_method is empty");
 }
+
+$stmt = $conn->prepare("INSERT INTO payments (order_id, user_id, payment_method, payment_status, created_at) VALUES (?, ?, ?, 'pending', NOW())");
+$stmt->bind_param("iis", $order_id, $user_id, $payment_method);
+$stmt->execute();
+$stmt->close();
 
 
 $stmt = $conn->prepare("DELETE FROM cart WHERE user_id = ?");
@@ -119,10 +124,6 @@ $stmt->execute();
 $stmt->close();
 
 
-if (!empty($order_ids)) {
-    header("Location: order_confirmation.php?order_id=" . $order_ids[0]);
-    exit();
-} else {
-    die("Failed to place order.");
-}
+header("Location: order_confirmation.php?order_id=" . $order_id);
+exit();
 ?>

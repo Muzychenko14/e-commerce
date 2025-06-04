@@ -56,7 +56,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_FILES["avatar"])) {
     $avatarFullPath = $uploadDir . '/' . $avatarName;
     $avatarRelativePath = 'uploads/' . $avatarName;
 
-    // Пытаемся переместить
+
     if (move_uploaded_file($_FILES["avatar"]["tmp_name"], $avatarFullPath)) {
         $stmt = $conn->prepare("UPDATE users SET avatar = ? WHERE id = ?");
         $stmt->bind_param("si", $avatarRelativePath, $user_id);
@@ -117,7 +117,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["street"], $_POST["cit
     exit;
 }
 
-// Delete Address
+
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_address_id"])) {
     $address_id = intval($_POST["delete_address_id"]);
 
@@ -132,7 +132,38 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_address_id"]))
     exit;
 }
 
-// Update Address
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_order_id"])) {
+    $order_id = intval($_POST["delete_order_id"]);
+
+    $conn->begin_transaction();
+    try {
+
+        $stmt = $conn->prepare("DELETE FROM payments WHERE order_id = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        $stmt->close();
+
+        $stmt = $conn->prepare("DELETE FROM order_items WHERE order_id = ?");
+        $stmt->bind_param("i", $order_id);
+        $stmt->execute();
+        $stmt->close();
+
+
+        $stmt = $conn->prepare("DELETE FROM orders WHERE id = ? AND user_id = ?");
+        $stmt->bind_param("ii", $order_id, $user_id);
+        $stmt->execute();
+        $stmt->close();
+
+        $conn->commit();
+        echo json_encode(["status" => "success"]);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(["status" => "error", "message" => "Failed to delete order"]);
+    }
+    exit;
+}
+
+
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["update_address_id"])) {
     $id = intval($_POST["update_address_id"]);
 

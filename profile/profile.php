@@ -14,11 +14,14 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $user = $conn->query("SELECT * FROM users WHERE id = $user_id")->fetch_assoc();
 $addresses = $conn->query("SELECT * FROM addresses WHERE user_id = $user_id");
 $order_query = "
-    SELECT o.*, p.name AS product_name, p.image AS product_image, p.id AS product_id
+    SELECT o.id AS order_id, o.total_price, o.status, o.created_at,
+           oi.quantity, p.name AS product_name, p.image AS product_image, p.id AS product_id
     FROM orders o
-    JOIN products p ON o.product_id = p.id
+    JOIN order_items oi ON oi.order_id = o.id
+    JOIN products p ON p.id = oi.product_id
     WHERE o.user_id = $user_id
     ORDER BY o.created_at DESC
+    LIMIT 5
 ";
 $order_result = $conn->query($order_query);
 ?>
@@ -105,7 +108,7 @@ $order_result = $conn->query($order_query);
           <tbody>
             <?php while ($order = $order_result->fetch_assoc()): ?>
               <tr class="border-b">
-                <td class="px-3 py-2"><?= $order['id'] ?></td>
+                <td class="px-3 py-2"><?= $order['order_id'] ?></td>
                 <td class="px-3 py-2">
                   <a href="../product.php?id=<?= $order['product_id'] ?>" class="flex items-center space-x-2 hover:underline">
                     <?php
@@ -120,6 +123,12 @@ $order_result = $conn->query($order_query);
                 <td class="px-3 py-2"><?= number_format($order['total_price'], 2, ',', ' ') ?> €</td>
                 <td class="px-3 py-2"><?= ucfirst($order['status']) ?></td>
                 <td class="px-3 py-2"><?= date("d.m.Y", strtotime($order['created_at'])) ?></td>
+                <td class="px-3 py-2">
+                  <form class="delete-order-form" method="POST">
+                    <input type="hidden" name="delete_order_id" value="<?= $order['order_id'] ?>">
+                    <button type="submit" class="text-red-500 hover:underline text-sm">Delete</button>
+                  </form>
+                </td>
               </tr>
             <?php endwhile; ?>
           </tbody>

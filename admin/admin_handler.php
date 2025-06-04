@@ -69,13 +69,32 @@ if ($action === "add_product" && isset($_POST["name"], $_POST["description"], $_
     exit;
 }
 
-// Удаление товара
 if ($action === "delete_product" && isset($_POST["id"])) {
     $id = intval($_POST["id"]);
     $conn->query("DELETE FROM products WHERE id = $id");
     echo json_encode(["status" => "success", "message" => "Product deleted"]);
     exit;
 }
+
+if ($action === "delete_order" && isset($_POST["order_id"])) {
+    $order_id = intval($_POST["order_id"]);
+
+    $conn->begin_transaction();
+
+    try {
+        $conn->query("DELETE FROM order_items WHERE order_id = $order_id");
+        $conn->query("DELETE FROM payments WHERE order_id = $order_id");
+        $conn->query("DELETE FROM orders WHERE id = $order_id");
+
+        $conn->commit();
+        echo json_encode(["status" => "success", "message" => "Order deleted"]);
+    } catch (Exception $e) {
+        $conn->rollback();
+        echo json_encode(["status" => "error", "message" => "DB error: " . $e->getMessage()]);
+    }
+    exit;
+}
+
 
 if ($action === "edit_product" && isset($_POST["id"])) {
     $id = intval($_POST["id"]);

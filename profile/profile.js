@@ -1,5 +1,5 @@
 $(document).ready(function () {
-  // Показать/скрыть форму добавления адреса
+
   $("#toggleAddressForm").click(function () {
     $("#addAddressForm").toggleClass("hidden");
   });
@@ -7,7 +7,7 @@ $(document).ready(function () {
     $("#userUpdateWrapper").toggleClass("hidden");
   });
 
-  // Добавление нового адреса
+
   $("#addAddressForm").submit(function (e) {
     e.preventDefault();
 
@@ -20,7 +20,6 @@ $(document).ready(function () {
     }, 'json');
   });
 
-  // Удаление адреса
   $(".delete-address").click(function () {
     if (!confirm("Delete this address?")) return;
 
@@ -35,7 +34,6 @@ $(document).ready(function () {
     }, 'json');
   });
 
-  // Обновление адреса
   $(".update-address").click(function () {
     let form = $(this).closest("form");
     let id = form.data("id");
@@ -56,7 +54,7 @@ $(document).ready(function () {
     }, 'json');
   });
 
-  // Обновление имени, email, пароля
+
   $("#userUpdateForm").submit(function (e) {
     e.preventDefault();
 
@@ -78,4 +76,27 @@ $(document).ready(function () {
       }
     });
   });
+});
+
+document.querySelectorAll('.delete-order-form').forEach(form => {
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        if (!confirm("Are you sure you want to delete this order?")) return;
+
+        const formData = new FormData(this);
+        const response = await fetch('/progetto/profile/Profile_handler.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+            alert("Order deleted successfully!");
+            location.reload();
+        } else {
+            alert("Error: " + result.message);
+        }
+    });
 });

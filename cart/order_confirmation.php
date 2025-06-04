@@ -7,14 +7,8 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$order_id = $_GET['order_id'] ?? null;
-if (!$order_id) {
-    die("ID заказа не указан.");
-}
-
 $user_id = $_SESSION['user_id'];
-
-
+$order_id = $_GET['order_id'] ?? null;
 $stmt = $conn->prepare("
     SELECT o.id AS order_id, a.street, a.postal_code, a.country, p.payment_method, p.payment_status, p.created_at
     FROM orders o
@@ -27,6 +21,27 @@ $stmt->execute();
 $result = $stmt->get_result();
 $order = $result->fetch_assoc();
 $stmt->close();
+
+if (!$order_id) {
+    die("ID заказа не указан.");
+}
+
+
+
+
+
+$items_stmt = $conn->prepare("
+    SELECT oi.quantity, oi.price, p.name, p.image
+    FROM order_items oi 
+    JOIN products p ON oi.product_id = p.id 
+    WHERE oi.order_id = ?
+");
+$items_stmt->bind_param("i", $order_id);
+$items_stmt->execute();
+$items_result = $items_stmt->get_result();
+$items = $items_result->fetch_all(MYSQLI_ASSOC);
+$items_stmt->close();
+
 
 if (!$order) {
     die("Заказ не найден.");
@@ -76,6 +91,28 @@ if (!$order) {
                     <span class="font-semibold"><i class="fas fa-calendar-alt mr-2 text-gray-500"></i>Order placement date:</span>
                     <span class="ml-2"><?= htmlspecialchars($order['created_at']) ?></span>
                 </div>
+                <div class="mt-6">
+                    <h2 class="font-bold text-lg mb-2">🛍️ Products in this order:</h2>
+                    <ul class="text-sm text-gray-700 space-y-3">
+                        <?php foreach ($items as $item): ?>
+                            <?php
+                                $images = json_decode($item['image'], true);
+                                $imgSrc = !empty($images) ? '/progetto/admin/uploads/' . htmlspecialchars($images[0]) : '/progetto/images/default.jpg';
+                            ?>
+                            <li class="flex items-center gap-3">
+                                <img src="<?= $imgSrc ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="w-14 h-14 object-cover rounded border" />
+                                <div>
+                                    <div class="font-semibold"><?= htmlspecialchars($item['name']) ?></div>
+                                    <div class="text-sm text-gray-500">
+                                        × <?= $item['quantity'] ?> — <?= number_format($item['price'] * $item['quantity'], 2) ?> $
+                                    </div>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+
+
             </div>
 
             <div class="mt-8 text-center">

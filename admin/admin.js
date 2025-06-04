@@ -21,6 +21,9 @@ function showToast(message, type = "info") {
 }
 
 function loadProducts() {
+    const container = document.getElementById("product-list");
+    if (!container) return;
+
     fetch("admin_handler.php?action=get_products")
         .then(res => res.json())
         .then(data => {
@@ -241,4 +244,39 @@ function closeModal() {
     document.getElementById('editModal').classList.add('hidden');
     editSelectedFiles = [];
     editExistingImages = [];
+}
+
+function deleteOrder(orderId) {
+    if (!confirm("Delete this order?")) return;
+
+    fetch('/progetto/admin/admin_handler.php?action=delete_order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'order_id=' + encodeURIComponent(orderId)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            alert("Order deleted successfully");
+            location.reload();
+        } else {
+            alert("Error: " + data.message);
+        }
+    })
+    .catch(err => alert("Network error: " + err));
+}
+
+if (typeof flatpickr !== "undefined" && document.querySelector("#datePicker")) {
+    flatpickr("#datePicker", {
+        dateFormat: "Y-m-d",
+        allowInput: true,
+        animate: true,
+        maxDate: "today",
+        altInput: true,
+        altFormat: "F j, Y",
+        defaultDate: "today",
+        locale: {
+            firstDayOfWeek: 1
+        }
+    });
 }

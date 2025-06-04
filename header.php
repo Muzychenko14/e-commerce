@@ -49,4 +49,33 @@ if (strpos($_SERVER['PHP_SELF'], '/cart/') !== false ||
         <?php endif; ?>
     </div>
 </header>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+
+    if (searchInput && searchResults) {
+        searchInput.addEventListener('keyup', function () {
+            const query = this.value.trim();
+
+            if (query.length > 2) {
+                fetch('<?= $path_prefix ?>search.php?q=' + encodeURIComponent(query))
+                    .then(res => res.text())
+                    .then(data => {
+                        searchResults.innerHTML = data;
+                        searchResults.classList.remove('hidden');
+                    });
+            } else {
+                searchResults.classList.add('hidden');
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.add('hidden');
+            }
+        });
+    }
+});
+</script>
 

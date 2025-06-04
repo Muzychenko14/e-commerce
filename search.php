@@ -14,7 +14,7 @@ if ($result->num_rows > 0) {
 
         echo "
         <a href='product.php?id={$row['id']}' class='flex items-center gap-3 p-2 text-zinc-400 hover:text-blue-900 hover:bg-yellow-100 transition-colors'>
-            <img src='admin/uploads/{$mainImage}' alt='{$row['name']}' class='w-12 h-12 object-cover rounded mr-3'>
+            <img src='/progetto/admin/uploads/{$mainImage}' alt='{$row['name']}' class='w-12 h-12 object-cover rounded mr-3'>
             <div>
                 <p class='font-medium'>" . htmlspecialchars($row["name"]) . "</p>
                 <p class='text-sm text-green-600'>" . number_format($row["price"], 2, ',', ' ') . " €</p>

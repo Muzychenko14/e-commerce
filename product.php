@@ -2,6 +2,26 @@
 session_start();
 require_once('db.php');
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_review_id'])) {
+    $review_id = intval($_POST['delete_review_id']);
+    $user_id = $_SESSION['user_id'] ?? null;
+    $is_admin = $_SESSION['admin'] ?? false;
+
+    if ($user_id) {
+        if ($is_admin) {
+
+            $stmt = $conn->prepare("DELETE FROM reviews WHERE id = ?");
+            $stmt->bind_param("i", $review_id);
+            $stmt->execute();
+        } else {
+
+            $stmt = $conn->prepare("DELETE FROM reviews WHERE id = ? AND user_id = ?");
+            $stmt->bind_param("ii", $review_id, $user_id);
+            $stmt->execute();
+        }
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
     if (!isset($_SESSION['user_id'])) {
         header("Location: /progetto/login.php");
@@ -123,7 +143,7 @@ $images = json_decode($product['image'], true);
 
     <div class="container mx-auto px-4 py-3">
         <div class="bg-white shadow-lg rounded-lg p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Left: Swiper Gallery -->
+
             <div>
                 <div class="swiper mySwiper">
                     <div class="swiper-wrapper">
@@ -141,7 +161,6 @@ $images = json_decode($product['image'], true);
                 </div>
             </div>
 
-            <!-- Right: Product Info -->
             <div>
                 <h1 class="text-3xl font-bold mb-2"><?= $name ?></h1>
                 <p class="mb-6"><?= $description ?></p>
@@ -182,11 +201,11 @@ $images = json_decode($product['image'], true);
                 <div class="flex flex-wrap items-center gap-4 mb-4">
                     <form method="POST" class="flex items-center gap-3">
                         <input type="hidden" name="place_order_product_id" value="<?= $product['id'] ?>">
-                        <button class="add-to-wishlist" data-id="<?= $product_id ?>">
+                        <button type="button" class="add-to-wishlist" data-id="<?= $product_id ?>">
                             <i class="<?= $heartClass ?> fa-heart text-2xl transition duration-200"></i>
                         </button>
 
-                        <button class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded add-to-cart transition" data-id="<?= $product['id']; ?>">
+                        <button type="button" class="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded add-to-cart transition" data-id="<?= $product['id']; ?>">
                             Add to Cart
                         </button>
 
@@ -208,7 +227,7 @@ $images = json_decode($product['image'], true);
             </div>
         </div>
 
-        <!-- Reviews Section -->
+
         <div class="bg-white shadow-md rounded-lg p-6 mt-10">
             <?php if ($is_logged_in): ?>
             <h2 class="text-2xl font-semibold mb-4">Leave a Review</h2>
@@ -237,21 +256,41 @@ $images = json_decode($product['image'], true);
             <div class="mt-8">
             <h2 class="text-2xl font-semibold mb-4">Reviews</h2>
             <?php
-            require_once('db.php');
-            $stmt = $conn->prepare("SELECT r.rating, r.comment, r.created_at, u.username FROM reviews r JOIN users u ON r.user_id = u.id WHERE r.product_id = ? ORDER BY r.created_at DESC");
+            $stmt = $conn->prepare("
+                SELECT r.id, r.rating, r.comment, r.created_at, r.user_id, u.username
+                FROM reviews r
+                JOIN users u ON r.user_id = u.id
+                WHERE r.product_id = ?
+                ORDER BY r.created_at DESC
+            ");
+
             $stmt->bind_param("i", $product_id);
             $stmt->execute();
             $reviews = $stmt->get_result();
             $conn->close();
-            if ($reviews->num_rows > 0):
-                while ($review = $reviews->fetch_assoc()):
-            ?>
-                <div class="bg-gray-100 p-4 rounded mb-3">
-                <p class="text-yellow-600 font-bold"><?= str_repeat("★", $review['rating']) . str_repeat("☆", 5 - $review['rating']) ?></p>
-                <p class="italic"><?= htmlspecialchars($review['comment']) ?></p>
-                <p class="text-sm text-gray-600 mt-1">— <?= htmlspecialchars($review['username']) ?> on <?= date("F j, Y", strtotime($review['created_at'])) ?></p>
-                </div>
-            <?php endwhile; else: ?>
+            if ($reviews->num_rows > 0): ?>
+                <?php while ($review = $reviews->fetch_assoc()): ?>
+                    <div class="bg-gray-100 p-4 rounded mb-3">
+                        <p class="text-yellow-600 font-bold">
+                            <?= str_repeat("★", $review['rating']) . str_repeat("☆", 5 - $review['rating']) ?>
+                        </p>
+                        <p class="italic"><?= htmlspecialchars($review['comment']) ?></p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            — <?= htmlspecialchars($review['username']) ?> on <?= date("F j, Y", strtotime($review['created_at'])) ?>
+                        </p>
+
+                        <?php if (
+                            (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $review['user_id']) ||
+                            (isset($_SESSION['admin']) && $_SESSION['admin'] === true)
+                        ): ?>
+                            <form method="POST" class="mt-2">
+                                <input type="hidden" name="delete_review_id" value="<?= $review['id'] ?>">
+                                <button type="submit" class="text-red-500 text-sm hover:underline">Delete</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                <?php endwhile; ?>
+            <?php else: ?>
                 <p class="text-gray-600">No reviews yet. Be the first to write one!</p>
             <?php endif; ?>
             </div>

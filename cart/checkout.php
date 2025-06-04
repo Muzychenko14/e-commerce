@@ -64,8 +64,8 @@ while ($row = $addr_data->fetch_assoc()) {
 
 <div class="container mx-auto flex flex-col lg:flex-row gap-6 p-4">
 
-    <!-- Левая часть: шаги -->
-    <form action="place_order.php" method="POST" onsubmit="return validateForm()" class="lg:w-2/3 w-full space-y-6 bg-white p-6 rounded shadow">
+    
+    <form id="checkout-form" action="place_order.php" method="POST" onsubmit="return validateForm()" class="lg:w-2/3 w-full space-y-6 bg-white p-6 rounded shadow">
 
         <div class="flex items-center mb-6">
             <div class="w-full bg-gray-200 h-2 rounded">
@@ -106,16 +106,20 @@ while ($row = $addr_data->fetch_assoc()) {
         <div class="step" id="step-2">
             <h2 class="text-lg font-bold mb-4">💳 Payment method</h2>
             <select name="payment_method" id="payment-method" class="border p-2 w-full mb-4" required>
-                <option value="" disabled selected>Choose payment method</option>
+                <option value="" disabled>Choose payment method</option>
+                <option value="cash">Cash</option>
                 <option value="card">Card</option>
                 <option value="paypal">PayPal</option>
-                <option value="cash">Cash</option>
+                
             </select>
 
             <div id="card-fields" class="hidden">
                 <input type="text" id="card_number" name="card_number" class="border p-2 w-full mb-2" placeholder="Card number" maxlength="19">
+                    <p id="card-error" class="text-red-600 text-sm hidden">Invalid card number</p>
                 <div class="flex gap-2">
                     <input type="text" id="card_expiry" name="card_expiry" class="border p-2 w-full" placeholder="MM/YY" maxlength="5">
+                        <p id="expiry-error" class="text-red-600 text-sm hidden">Invalid expiry date (MM/YY)</p>
+                        <p id="date-error" class="text-red-600 text-sm hidden">Invalid date (day must be ≤ 31)</p>
                     <input type="text" name="card_cvc" class="border p-2 w-full" placeholder="CVC" maxlength="4">
                 </div>
                 <input type="text" name="card_holder" placeholder="Card holder name" class="border p-2 w-full mb-2">

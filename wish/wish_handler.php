@@ -28,7 +28,6 @@ if (in_array($action, ['add', 'remove']) && $product_id > 0) {
     $check->close();
 }
 
-// Добавить в избранное
 if ($action === "add") {
     if ($product_id <= 0) {
         echo json_encode(["status" => "error", "message" => "Invalid product ID"]);
@@ -48,8 +47,6 @@ if ($action === "add") {
     echo json_encode(["status" => "success", "message" => "Added to favorites!"]);
     exit;
 }
-
-// Удалить из избранного
 if ($action === "remove") {
     if ($product_id <= 0) {
         echo json_encode(["status" => "error", "message" => "Invalid product ID"]);

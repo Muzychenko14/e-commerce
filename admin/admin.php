@@ -12,18 +12,23 @@ $order_result = $conn->query("
         o.id, 
         o.user_id, 
         o.address_id, 
-        o.product_id,
-        o.quantity, 
+        oi.product_id,
+        oi.quantity, 
         o.total_price, 
         o.status, 
         o.created_at,
-        o.payment_method,
+        pay.payment_method,
+        u.username,
         p.name AS product_name,
-        u.username
+        p.image AS product_image
     FROM orders o
-    LEFT JOIN products p ON o.product_id = p.id
+    JOIN order_items oi ON oi.order_id = o.id
+    LEFT JOIN products p ON oi.product_id = p.id
     LEFT JOIN users u ON o.user_id = u.id
+    LEFT JOIN payments pay ON o.id = pay.order_id
+    GROUP BY o.id
     ORDER BY o.created_at DESC
+    LIMIT 5
 ");
 
 
@@ -91,33 +96,23 @@ if ($category_result) {
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 max-w-4xl mx-auto">
         
-            <div class="bg-white p-4 rounded shadow text-center ">
+            <a href="admin_orders.php" class="block bg-white p-4 rounded shadow text-center hover:bg-gray-100 transition">
                 <h3 class="text-sm font-semibold text-gray-500">Total orders</h3>
                 <p class="text-2xl font-bold text-gray-800"><?= $total_orders ?></p>
-            </div>
+            </a>
             <div class="bg-white p-4 rounded shadow text-center">
                 <h3 class="text-sm font-semibold text-gray-500">Total revenue</h3>
-                <p class="text-2xl font-bold text-green-600"><?= number_format($total_revenue, 2, ',', ' ') ?> €</p>
+                <p class="text-2xl font-bold text-green-600"><?= number_format($total_revenue, 2, ',', ' ') ?> $</p>
             </div>
-            <div class="bg-white p-4 rounded shadow text-center">
+            <a href="admin_user_panel.php" class="block bg-white p-4 rounded shadow text-center hover:bg-gray-100 transition">
                 <h3 class="text-sm font-semibold text-gray-500">Users</h3>
                 <p class="text-2xl font-bold text-gray-800"><?= $total_users ?></p>
-            </div>
+            </a>
 
-            <div class="bg-white p-4 rounded shadow text-center">
-                <h3 class="text-sm font-semibold text-gray-500">Admins</h3>
-                <p class="text-2xl font-bold text-blue-600"><?= $total_admins ?></p>
-            </div>
-
-            <div class="bg-white p-4 rounded shadow text-center">
+            <a href="#itemList" class="bg-white p-4 rounded shadow text-center">
                 <h3 class="text-sm font-semibold text-gray-500">Products</h3>
                 <p class="text-2xl font-bold text-indigo-600"><?= $total_products ?></p>
-            </div>
-
-            <div class="bg-white p-4 rounded shadow text-center">
-                <h3 class="text-sm font-semibold text-gray-500">Max Order</h3>
-                <p class="text-2xl font-bold text-red-600"><?= number_format($max_order, 2, ',', ' ') ?> €</p>
-            </div>
+            </a>
         </div>
 
         
@@ -152,7 +147,7 @@ if ($category_result) {
                     </div>
 
                     <div class="bg-white p-6 shadow-md rounded-lg mt-6 overflow-x-auto ">
-                        <h2 class="text-2xl font-semibold mb-4">Orders</h2>
+                        <h2 class="text-2xl font-semibold mb-4">Latest Orders</h2>
                         <table class="min-w-full table-auto text-sm text-left">
                             <thead>
                                 <tr class="bg-gray-100">
@@ -164,6 +159,8 @@ if ($category_result) {
                                     <th class="px-4 py-2">Payment</th>
                                     <th class="px-4 py-2">Date</th>
                                     <th class="px-4 py-2">Status</th>
+                                    <th class="px-4 py-2">Action</th>
+
 
                                 </tr>
                             </thead>
@@ -178,6 +175,19 @@ if ($category_result) {
                                     <td class="px-4 py-2"><?= htmlspecialchars($order['payment_method']) ?></td>
                                     <td class="px-4 py-2"><?= date("Y-m-d H:i", strtotime($order['created_at'])) ?></td>
                                     <td class="px-4 py-2"><?= ucfirst($order['status']) ?></td>
+                                    <td class="px-4 py-2">
+                                        <a href="/progetto/product.php?id=<?= $order['product_id'] ?>" class="flex items-center space-x-2 hover:underline">
+                                            <?php
+                                            $imgs = json_decode($order['product_image'], true);
+                                            $thumb = !empty($imgs) ? '/progetto/admin/uploads/' . htmlspecialchars($imgs[0]) : 'default.jpg';
+                                            ?>
+                                            <img src="<?= $thumb ?>" alt="<?= htmlspecialchars($order['product_name']) ?>" class="w-10 h-10 object-cover rounded">
+                                            <span><?= htmlspecialchars($order['product_name']) ?></span>
+                                        </a>
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        <button onclick="deleteOrder(<?= $order['id'] ?>)" class="text-red-600 hover:underline">Delete</button>
+                                    </td>
                                 </tr>
 
                                 <?php endwhile; ?>
@@ -187,7 +197,7 @@ if ($category_result) {
                 </div>
 
             <div class="overflow-x-auto">
-                <h2 class="text-2xl font-semibold mb-4">Item List</h2>
+                <h2 id="itemList" class="text-2xl font-semibold mb-4">Item List</h2>
                 <button onclick="loadProducts()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Refresh List</button>
                 <div id="product-list" class="flex overflow-x-auto space-x-4 p-4 snap-x snap-mandatory"></div>
             </div>
