@@ -109,7 +109,7 @@ if ($category_result) {
                 <p class="text-2xl font-bold text-gray-800"><?= $total_users ?></p>
             </a>
 
-            <a href="#itemList" class="bg-white p-4 rounded shadow text-center">
+            <a href="#item" class="block bg-white p-4 rounded shadow text-center hover:bg-gray-100 transition">
                 <h3 class="text-sm font-semibold text-gray-500">Products</h3>
                 <p class="text-2xl font-bold text-indigo-600"><?= $total_products ?></p>
             </a>
@@ -196,10 +196,32 @@ if ($category_result) {
                     </div>
                 </div>
 
-            <div class="overflow-x-auto">
-                <h2 id="itemList" class="text-2xl font-semibold mb-4">Item List</h2>
-                <button onclick="loadProducts()" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Refresh List</button>
-                <div id="product-list" class="flex overflow-x-auto space-x-4 p-4 snap-x snap-mandatory"></div>
+            <div id="item">
+                <h2 class="text-2xl font-semibold mb-4">Item List</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <?php
+                $products = $conn->query("SELECT id, name, image FROM products ORDER BY id DESC");
+                while ($p = $products->fetch_assoc()):
+                    $imgs = json_decode($p['image'], true);
+                    $thumb = !empty($imgs) ? 'uploads/' . htmlspecialchars($imgs[0]) : 'default.jpg';
+                ?>
+                    <div class="relative group">
+                        <a href="admin_item.php?id=<?= $p['id'] ?>" class="block bg-white rounded-lg shadow hover:shadow-md transition">
+                            <img src="<?= $thumb ?>" class="w-full h-48 object-cover rounded-t-lg" alt="<?= htmlspecialchars($p['name']) ?>">
+                            <div class="p-3">
+                                <h3 class="text-lg font-semibold"><?= htmlspecialchars($p['name']) ?></h3>
+                            </div>
+                        </a>
+                        <button
+                            class="absolute top-2 right-2 bg-red-600 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition"
+                            onclick="deleteProduct(<?= $p['id'] ?>)">
+                            Delete
+                        </button>
+                    </div>
+                <?php endwhile; ?>
+                </div>
+            </div>
+
             </div>
 
 
@@ -208,27 +230,49 @@ if ($category_result) {
     </div>
 
 
-    <div id="editModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
-    <div class="bg-white p-6 rounded shadow-md w-full max-w-md">
-        <h2 class="text-xl font-bold mb-4">Edit Product</h2>
-        <form id="editForm" enctype="multipart/form-data">
+    <div id="editModal" class="overflow-y-auto fixed inset-0 bg-black/50 z-50 hidden items-center justify-center transition-opacity duration-300">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6 relative animate-fade-in">
+            
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-gray-400 hover:text-black transition text-2xl">&times;</button>
+
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Edit Product</h2>
+
+            <form id="editForm" enctype="multipart/form-data" class="space-y-4">
             <input type="hidden" name="id" id="editId">
-            <input type="text" id="editName" name="name" required>
-            <textarea id="editDescription" name="description" required></textarea>
-            <input type="number" id="editPrice" name="price" required>
 
-            <label class="block text-sm font-medium mt-2">Change img</label>
-            <div id="currentImages" class="flex flex-wrap gap-2 mb-2"></div>
-            <input type="file" id="editImages" name="image[]" multiple class="mt-1 p-2 border rounded w-full">
-
-            <div class="flex justify-end gap-2 mt-4">
-                <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-400 text-white rounded">Cancel</button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded">Save</button>
+            <div>
+                <label for="editName" class="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+                <input type="text" id="editName" name="name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300">
             </div>
-        </form>
 
-    </div>
-    </div>
+            <div>
+                <label for="editDescription" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="editDescription" name="description" required rows="3" class="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring focus:ring-blue-300"></textarea>
+            </div>
+
+            <div>
+                <label for="editPrice" class="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                <input type="number" id="editPrice" name="price" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-300">
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Current Images</label>
+                <div id="currentImages" class="flex flex-wrap gap-3"></div>
+            </div>
+
+            <div>
+                <label for="editImages" class="block text-sm font-medium text-gray-700 mb-1">Add More Images</label>
+                <input type="file" id="editImages" name="image[]" multiple class="w-full border p-2 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button" onclick="closeModal()" class="px-5 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition">Cancel</button>
+                <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition font-semibold">Save</button>
+            </div>
+            </form>
+        </div>
+        </div>
+
 
 
     <div id="toast" class="hidden fixed bottom-6 right-6 px-5 py-3 rounded-lg shadow-lg text-white z-50 opacity-0 transition-opacity duration-300"></div>

@@ -106,8 +106,33 @@ document.addEventListener("click", function (e) {
         const img = e.target.dataset.image;
         editExistingImages = editExistingImages.filter(i => i !== img);
         e.target.closest("[data-image]").remove();
+    } else if (e.target.classList.contains("remove-new")) {
+        const uid = e.target.dataset.uid;
+        editSelectedFiles = editSelectedFiles.filter(f => f.uid !== uid);
+        e.target.closest("[data-uid]").remove();
+    
+    } else if (e.target.classList.contains("delete-image-btn")) {
+        const productId = e.target.dataset.productId;
+        const image = e.target.dataset.image;
+
+        if (!confirm("Удалить изображение?")) return;
+
+        fetch("admin_handler.php?action=delete_image", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: `product_id=${productId}&image=${encodeURIComponent(image)}`
+        })
+        .then(res => res.json())
+        .then(data => {
+            showToast(data.message, data.status);
+            if (data.status === "success") {
+                const el = document.querySelector(`[data-image-wrapper="${image}"]`);
+                if (el) el.remove();
+            }
+        });
     }
 });
+
 
 const dropzone = document.getElementById("dropzone");
 const imageInput = document.getElementById("imageInput");
@@ -140,6 +165,17 @@ async function handleFiles(files) {
     renderPreview();
 }
 
+function handleAddFiles(files) {
+    for (const file of files) {
+        const uid = generateUid(file);
+        const exists = addSelectedFiles.some(f => f.uid === uid);
+        if (!exists) {
+            addSelectedFiles.push({ uid, file });
+        }
+    }
+    renderAddPreview();
+}
+
 
 function renderAddPreview() {
     const preview = document.getElementById("imagePreview");
@@ -159,6 +195,26 @@ function renderAddPreview() {
         reader.readAsDataURL(file);
     });
 }
+
+function renderEditPreview() {
+    const previewDiv = document.getElementById("currentImages");
+    previewDiv.querySelectorAll("[data-uid]").forEach(el => el.remove());
+    editSelectedFiles.forEach(({ uid, file }) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "relative w-24 h-24 cursor-move";
+            wrapper.setAttribute("data-uid", uid);
+            wrapper.innerHTML = `
+                <img src="${e.target.result}" class="object-cover w-full h-full rounded" />
+                <button type="button" class="absolute top-0 right-0 bg-red-600 text-white w-5 h-5 rounded-full remove-new" data-uid="${uid}">&times;</button>
+            `;
+            previewDiv.appendChild(wrapper);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 
 document.getElementById("addProductForm")?.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -188,7 +244,10 @@ document.getElementById("addProductForm")?.addEventListener("submit", function (
 function openModal(product) {
     document.getElementById('editId').value = product.id;
     document.getElementById('editName').value = product.name;
-    document.getElementById('editDescription').value = product.description;
+    document.getElementById('editDescription').value = product.description
+        .replace(/\\r\\n/g, "\n")
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, "\\");
     document.getElementById('editPrice').value = product.price;
 
     editExistingImages = Array.isArray(product.image) ? [...product.image] : [];
@@ -196,6 +255,8 @@ function openModal(product) {
 
     const currentImagesDiv = document.getElementById("currentImages");
     currentImagesDiv.innerHTML = "";
+
+
     editExistingImages.forEach(img => {
         const wrapper = document.createElement("div");
         wrapper.className = "relative w-24 h-24 cursor-move";
@@ -207,9 +268,13 @@ function openModal(product) {
         currentImagesDiv.appendChild(wrapper);
     });
 
+
     document.getElementById('editImages').value = "";
+
+
     document.getElementById('editModal').classList.remove('hidden');
 }
+
 
 document.getElementById("editImages")?.addEventListener("change", e => {
     const files = e.target.files;
@@ -219,6 +284,8 @@ document.getElementById("editImages")?.addEventListener("change", e => {
             editSelectedFiles.push({ uid, file });
         }
     }
+    renderEditPreview(); 
+    e.target.value = ""; 
 });
 
 document.getElementById("editForm")?.addEventListener("submit", function (e) {
@@ -244,6 +311,7 @@ function closeModal() {
     document.getElementById('editModal').classList.add('hidden');
     editSelectedFiles = [];
     editExistingImages = [];
+    document.getElementById("currentImages").innerHTML = "";
 }
 
 function deleteOrder(orderId) {

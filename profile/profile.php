@@ -103,6 +103,7 @@ $order_result = $conn->query($order_query);
               <th class="px-3 py-2">Sum</th>
               <th class="px-3 py-2">Status</th>
               <th class="px-3 py-2">Date</th>
+              <th class="px-3 py-2">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -119,7 +120,7 @@ $order_result = $conn->query($order_query);
                     <span><?= htmlspecialchars($order['product_name']) ?></span>
                   </a>
                 </td>
-                <td class="px-3 py-2"><?= $order['quantity'] ?></td>
+                <td class="px-3 py-2 text-center"><?= $order['quantity'] ?></td>
                 <td class="px-3 py-2"><?= number_format($order['total_price'], 2, ',', ' ') ?> €</td>
                 <td class="px-3 py-2"><?= ucfirst($order['status']) ?></td>
                 <td class="px-3 py-2"><?= date("d.m.Y", strtotime($order['created_at'])) ?></td>

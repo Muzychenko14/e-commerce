@@ -100,3 +100,33 @@ document.querySelectorAll('.delete-order-form').forEach(form => {
         }
     });
 });
+
+
+$("#avatarForm").on("submit", function (e) {
+  e.preventDefault();
+
+  const formData = new FormData(this);
+
+  $.ajax({
+    url: "profile_handler.php",
+    type: "POST",
+    data: formData,
+    contentType: false,
+    processData: false,
+    dataType: "json",
+    success: function (res) {
+      if (res.status === "success") {
+        $("#userAvatar").attr("src", res.avatar); 
+        alert("Avatar updated!");
+      } else {
+        alert("Error: " + res.message);
+        if (res.debug) console.log("Debug:", res.debug);
+      }
+    },
+    error: function (xhr, status, err) {
+      alert("AJAX upload failed");
+      console.error("Error:", err);
+    }
+  });
+});
+
